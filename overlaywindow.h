@@ -8,14 +8,11 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 
-struct DrawPoint {
-    QPointF pos;
-    qreal pressure;
-    bool isEraser;
-};
-
 class OverlayWindow : public QWidget {
     Q_OBJECT
+
+signals:
+    void closed();
 
 public:
     explicit OverlayWindow(QWidget *parent = nullptr) : QWidget(parent) {
@@ -81,7 +78,7 @@ protected:
 
     void keyPressEvent(QKeyEvent *event) override {
         if (event->key() == Qt::Key_Escape) {
-            hide();
+            emit closed();
         } else if (event->key() == Qt::Key_C) {
             clearCanvas();
         }

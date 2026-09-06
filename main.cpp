@@ -15,13 +15,13 @@ int main(int argc, char *argv[]) {
 
     for (QScreen *screen : screens) {
         auto *window = new OverlayWindow();
-
         window->winId(); 
+
+        QObject::connect(window, &OverlayWindow::closed, &app, &QCoreApplication::quit);
 
         LayerShellQt::Window *layerWindow = LayerShellQt::Window::get(window->windowHandle());
         if (layerWindow) {
             layerWindow->setScreen(screen);
-
             layerWindow->setLayer(LayerShellQt::Window::LayerOverlay);
 
             layerWindow->setAnchors(LayerShellQt::Window::Anchors(
@@ -32,11 +32,9 @@ int main(int argc, char *argv[]) {
             ));
 
             layerWindow->setExclusiveZone(-1);
-
             layerWindow->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityExclusive);
         }
 
-        // Показываем окно
         window->show();
         windows.append(window);
     }
