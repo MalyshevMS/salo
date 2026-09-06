@@ -7,6 +7,7 @@
 #include <QTabletEvent>
 #include <QMouseEvent>
 #include <QKeyEvent>
+#include <QList>
 
 class OverlayWindow : public QWidget {
     Q_OBJECT
@@ -22,8 +23,16 @@ public:
     }
 
     void clearCanvas() {
+        saveState();
         m_canvas.fill(Qt::transparent);
         update();
+    }
+
+    void undo() {
+        if (!m_undoStack.isEmpty()) {
+            m_canvas = m_undoStack.takeLast();
+            update();
+        }
     }
 
 protected:
@@ -49,6 +58,10 @@ protected:
         QPointF pos = event->position();
         qreal pressure = event->pressure();
 
+        if (event->type() == QEvent::TabletPress) {
+            saveState();
+        }
+
         if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletMove) {
             if (event->buttons() & Qt::LeftButton) {
                 drawLineTo(pos, pressure, false);
@@ -63,6 +76,7 @@ protected:
     }
 
     void mousePressEvent(QMouseEvent *event) override {
+        saveState();
         m_lastPos = event->position();
         handleMouse(event);
     }
@@ -77,7 +91,10 @@ protected:
     }
 
     void keyPressEvent(QKeyEvent *event) override {
-        if (event->key() == Qt::Key_Escape) {
+        if ((event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_Z) ||
+            (event->key() == Qt::Key_Z && event->modifiers() == Qt::NoModifier)) {
+            undo();
+        } else if (event->key() == Qt::Key_Escape) {
             emit closed();
         } else if (event->key() == Qt::Key_C) {
             clearCanvas();
@@ -87,6 +104,17 @@ protected:
 private:
     QImage m_canvas;
     QPointF m_lastPos;
+    QList<QImage> m_undoStack;
+    static constexpr int MAX_UNDO_STEPS = 30;
+
+    void saveState() {
+        if (!m_canvas.isNull()) {
+            m_undoStack.append(m_canvas);
+            if (m_undoStack.size() > MAX_UNDO_STEPS) {
+                m_undoStack.removeFirst();
+            }
+        }
+    }
 
     void handleMouse(QMouseEvent *event) {
         if (event->buttons() & Qt::LeftButton) {
